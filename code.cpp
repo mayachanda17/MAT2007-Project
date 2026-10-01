@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <unordered_set> // stores unique elements in no particular order and allows for extremely fast lookups
 #include <iomanip> // required for setw (column width), left, right (sets text alignment)
+#include <cctype> // for toupper
 
 using namespace std;
 
@@ -97,6 +98,10 @@ void ExtractPrimes(const vector<long long>& primes, const unordered_set<long lon
 
 // generating table 
 void PrintTable(const vector<PrimePair>& twin_pairs, const vector<PrimePair>& sexy_pairs, const vector<long long>& fib_primes, long long max_val = 1000000, long long step = 100000) {
+    //open a csv file and write the header row, csv file will be used by plots.py to produce plots, so that values don't have to be hardcoded
+    ofstream csv("prime_stats.csv");
+    csv << "range,twin,sexy,fib\n";
+
     // printing table headers
 std::cout << "\n===================================================================\n";
     std::cout << left 
@@ -111,7 +116,7 @@ std::cout << "\n================================================================
     size_t sexy_idx = 0;
     size_t fib_idx = 0;
 
-    // 2. Iterate through each 100k bucket
+    //Iterate through each 100k bucket
     for (long long start = 0; start < max_val; start += step) {
         long long end = start + step;
 
@@ -146,36 +151,128 @@ std::cout << "\n================================================================
         // Format label e.g. "0 - 100k" or "100k - 200k"
         string label = to_string(start / 1000) + "k - " + to_string(end / 1000) + "k";
 
-        // 3. Print Row
+        // write to csv
+        csv << label << "," << twin_count << "," << sexy_count << "," << fib_count << "\n";  
+        // Print Row
         std::cout << left 
                   << setw(20) << label
                   << setw(15) << twin_count
                   << setw(15) << sexy_count
                   << setw(18) << fib_count << "\n";
     }
-
-    cout << "===================================================================\n\n";
+    csv.close();
+    std::cout << "===================================================================\n\n";
 }
+
+// Helper Function
+int GetValidIndex(int max_size) {
+    int n;
+    while (true) {
+        cout << "Enter N (1 - " << max_size << "): ";
+        if (cin >> n && n >= 1 && n <= max_size) {
+            return n;
+        }
+        cout << "Invalid selection. Please enter a number between 1 and " << max_size << ".\n";
+        cin.clear();            // Clear error flags
+        cin.ignore(10000, '\n'); // Discard bad input
+    }
+}
+
+// Menu Function
+void RunInteractiveMenu(const vector<PrimePair>& twin_pairs,
+                        const vector<PrimePair>& sexy_pairs,
+                        const vector<long long>& fib_primes) {
+    char choice;
+    char repeat;
+
+    do {
+        cout << "\n---------------------------------------------------\n";
+        cout << "               PRIME LOOKUP MENU\n";
+        cout << "---------------------------------------------------\n";
+        cout << "Choose a type of prime to inspect:\n";
+        cout << "  [T] Twin Prime Pairs\n";
+        cout << "  [S] Sexy Prime Pairs\n";
+        cout << "  [F] Fibonacci Primes\n";
+        cout << "  [E] Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        choice = toupper(choice); // Handle lowercase inputs ('t', 's', 'f')
+
+        if (choice == 'E') {
+            cout << "Exiting program. Goodbye!\n";
+            break;
+        }
+
+        switch (choice) {
+            case 'T': {
+                if (twin_pairs.empty()) {
+                    cout << "No Twin Primes found in dataset.\n";
+                    break;
+                }
+                int n = GetValidIndex(twin_pairs.size());
+                cout << "\n--> The " << n << "th Twin Prime pair is: (" 
+                     << twin_pairs[n - 1].p1 << ", " << twin_pairs[n - 1].p2 << ")\n";
+                break;
+            }
+            case 'S': {
+                if (sexy_pairs.empty()) {
+                    cout << "No Sexy Primes found in dataset.\n";
+                    break;
+                }
+                int n = GetValidIndex(sexy_pairs.size());
+                cout << "\n--> The " << n << "th Sexy Prime pair is: (" 
+                     << sexy_pairs[n - 1].p1 << ", " << sexy_pairs[n - 1].p2 << ")\n";
+                break;
+            }
+            case 'F': {
+                if (fib_primes.empty()) {
+                    cout << "No Fibonacci Primes found in dataset.\n";
+                    break;
+                }
+                int n = GetValidIndex(fib_primes.size());
+                cout << "\n--> The " << n << "th Fibonacci Prime is: " 
+                     << fib_primes[n - 1] << "\n";
+                break;
+            }
+            default:
+                cout << "Invalid option. Please choose T, S, F, or E.\n";
+                continue; // Skip repeat prompt and restart loop
+        }
+
+        // Prompt to run another query or leave
+        cout << "\nWould you like to search again? (Y/N): ";
+        cin >> repeat;
+        repeat = toupper(repeat);
+
+    } while (repeat == 'Y');
+
+    cout << "\nProgram finished.\n";
+}
+
+
 int main() {
     //ReadFile()
     // load primes
     vector<long long> primes = ReadFile("1m.csv");
 
     // check output is successful
+    std::cout << "===================================================================\n";
     cout << "Successfully loaded " << primes.size() << " primes." << endl;
     if (!primes.empty()) {
         cout << "First prime: " << primes.front() << endl;
         cout << "Last prime: " << primes.back() << endl;}
+        std::cout << "===================================================================\n";
 
-        // 2. Generate Fibonacci set up to 1,000,000
+        //Generate Fibonacci set up to 1,000,000
     unordered_set<long long> fib_set = GetFibonacciSet(1000000);
 
-    // 3. Containers for our results
+    //Containers for our results
     vector<PrimePair> twin_pairs;
     vector<PrimePair> sexy_pairs;
     vector<long long> fib_primes;
 
-    // 4. Run Step 2 extraction
+    // Run Step 2 extraction
     ExtractPrimes(primes, fib_set, twin_pairs, sexy_pairs, fib_primes);
 /*
     // Test output
@@ -184,6 +281,9 @@ int main() {
     cout << "Found " << fib_primes.size() << " Fibonacci primes.\n";*/
     
     PrintTable(twin_pairs, sexy_pairs, fib_primes, 1000000, 100000); // outputting table
+
+    // Run interactive user menu
+    RunInteractiveMenu(twin_pairs, sexy_pairs, fib_primes);
 
     return 0;
 }
