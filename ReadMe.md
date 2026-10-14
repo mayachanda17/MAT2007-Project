@@ -1,0 +1,1 @@
+1. code generates all primes from within interval 1 - 1,000,000 using ReadFile() function

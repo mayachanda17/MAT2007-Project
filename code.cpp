@@ -7,6 +7,7 @@
 #include <unordered_set> // stores unique elements in no particular order and allows for extremely fast lookups
 #include <iomanip> // required for setw (column width), left, right (sets text alignment)
 #include <cctype> // for toupper
+#include <cmath>
 
 using namespace std;
 
@@ -178,6 +179,28 @@ int GetValidIndex(int max_size) {
     }
 }
 
+void PrintUncertaintySummary(long long N1, long long N2) {
+    // Example C++ evaluation between Bin 1 (0-100k) and Bin 2 (100k-200k)
+
+    double u1 = std::sqrt(N1); // 34.99
+    double u2 = std::sqrt(N2); // 28.57
+
+    double diff_of_u = std::abs(u1 - u2);            // 6.42
+    double delta_N = N2 - N1;                         // -408
+    double u_delta_N = std::sqrt(N1 + N2);            // 45.17 (Uncertainty of difference)
+
+    std::cout << "\n========================================================\n";
+    std::cout << "          STATISTICAL UNCERTAINTY ANALYSIS              \n";
+    std::cout << "========================================================\n";
+    std::cout << "Bin 1 Uncertainty (0k - 100k): " << u1 << "\n";
+    std::cout << "Bin 2 Uncertainty (100k - 200k): " << u2 << "\n";
+    std::cout << "Difference between uncertainties (|u2 - u1|): " << diff_of_u << "\n"; // standard error margin shrinks as the density of primes drops
+    std::cout << "Difference in count (Delta N): " << delta_N << "\n";
+    std::cout << "Uncertainty of difference (u_Delta_N): " << u_delta_N << "\n";
+    std::cout << "Ratio |Delta N| / u_Delta_N: " << std::abs(delta_N) / u_delta_N << " sigma\n";
+    std::cout << "========================================================\n";
+}
+
 // Menu Function
 void RunInteractiveMenu(const vector<PrimePair>& twin_pairs,
                         const vector<PrimePair>& sexy_pairs,
@@ -282,6 +305,21 @@ int main() {
     
     PrintTable(twin_pairs, sexy_pairs, fib_primes, 1000000, 100000); // outputting table
 
+    // --- DYNAMIC CALCULATION FOR UNCERTAINTY SUMMARY ---
+    long long bin1_count = 0; // 0k to 100k
+    long long bin2_count = 0; // 100k to 200k
+
+    for (const auto& pair : twin_pairs) {
+        if (pair.p1 < 100000) {
+            bin1_count++;
+        } else if (pair.p1 >= 100000 && pair.p1 < 200000) {
+            bin2_count++;
+        }
+    }
+
+    // Call the uncertainty summary for the first two bins (e.g., 0-100k vs 100k-200k counts)
+    PrintUncertaintySummary(bin1_count, bin2_count);
+    
     // Run interactive user menu
     RunInteractiveMenu(twin_pairs, sexy_pairs, fib_primes);
 
